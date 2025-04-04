@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Atom Mind Popup</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 16px;
+      width: 360px;
+      text-align: center;
+      position: relative;
+    }
+    /* Container for the inline SVG */
+    #logoContainer {
+      width: 360px;
+      height: 150px;
+      margin: 0 auto;
+    }
+    button {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      margin-top: 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #footer {
+      margin-top: 30px;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div id="logoContainer">
+    <!-- Inline SVG Logo Inspired by GoFloww -->
+    <svg id="logoSVG" viewBox="0 0 360 150" xmlns="http://www.w3.org/2000/svg">
+      <!-- Define a left-to-right linear gradient -->
+      <defs>
+        <linearGradient id="flowwGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#00E3FF" />
+          <stop offset="100%" stop-color="#1F7BFF" />
+        </linearGradient>
+      </defs>
+
+      <!-- Stylized "f" shape (placeholder path) -->
+      <path
+        d="M 40,75
+           C 40,30 120,10 120,60
+           Q 120,100 90,115
+           T 50,100
+           Z"
+        fill="url(#flowwGradient)"
+      />
+
+      <!-- "floww" text -->
+      <text x="140" y="95" font-size="50" font-family="sans-serif" fill="url(#flowwGradient)">
+        floww
+      </text>
+
+      <!-- Left eye (white circle) -->
+      <circle cx="75" cy="60" r="12" fill="white" />
+      <!-- Left pupil (will move) -->
+      <circle id="leftPupil" cx="75" cy="60" r="6" fill="black" />
+
+      <!-- Right eye (white circle) -->
+      <circle cx="105" cy="60" r="12" fill="white" />
+      <!-- Right pupil (will move) -->
+      <circle id="rightPupil" cx="105" cy="60" r="6" fill="black" />
+    </svg>
+  </div>
+
+  <!-- Toggle Button -->
+  <button id="toggleBtn">🟢 Extension is ON</button>
+
+  <!-- Footer -->
+  <div id="footer">
+    <p>Contact us for help</p>
+    <p>Powered by Atom Mind</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
