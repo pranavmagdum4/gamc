@@ -165,3 +165,58 @@ async function generateWithGemini(prompt, tone) {
 
 // Run observer on page load
 observeForComposeBox();
+
+console.log("✅ Content script loaded");
+
+chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+  if (msg.action === "REFINE_TEXT" && msg.text && msg.instruction) {
+    console.log("📩 Refining:", msg.text, "| Instruction:", msg.instruction);
+
+    const refined = await generateWithGeminiPrompt(msg.text, msg.instruction);
+    replaceSelectedText(refined);
+  }
+});
+
+async function generateWithGeminiPrompt(input, instruction) {
+  const apiKey = "AIzaSyC-e3RXDhoKx-3-TRkdYE7ELnxfwf00zUs";
+  const fullPrompt = `
+You are a helpful writing assistant. Rewrite the following text with the instruction: "${instruction}". 
+Only return the improved version. Do not add explanations or multiple options.
+
+Text: "${input}"
+`;
+
+  const body = {
+    contents: [{ parts: [{ text: fullPrompt }] }],
+  };
+
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const result = await response.json();
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || input;
+  } catch (err) {
+    console.error("Gemini API Error:", err);
+    return input;
+  }
+}
+
+function replaceSelectedText(newText) {
+  const selection = window.getSelection();
+  if (!selection.rangeCount) return;
+
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(document.createTextNode(newText));
+}
+
+
+
+
