@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rounded square -->
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#4f46e5"/>
+  <!-- AI symbol: a simplified circuit/brain-like design -->
+  <path d="M32 14a18 18 0 1 0 18 18 18.02 18.02 0 0 0-18-18zm0 32a14 14 0 1 1 14-14 14.016 14.016 0 0 1-14 14z" fill="#fff"/>
+  <circle cx="32" cy="32" r="5" fill="#4f46e5"/>
+</svg>
