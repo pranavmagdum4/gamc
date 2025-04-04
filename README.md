@@ -10,4 +10,7 @@ Package for distribution
 
 
 1)created basic pop up extension with heading as Atom Mind and text as AI Email Assistant
+<br>
 2)gmail interface integration
+<br>
+3)gemini api integration

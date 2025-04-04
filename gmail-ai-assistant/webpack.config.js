@@ -6,7 +6,8 @@ module.exports = {
   entry: {
     background: './src/background/background.js',
     'content/gmail': './src/content/gmail.js',
-    'popup/popup': './src/popup/popup.js'
+    'popup/popup': './src/popup/popup.js',
+    'services/gemini-service': './src/services/gemini-service.js'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
