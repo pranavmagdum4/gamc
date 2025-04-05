@@ -28,20 +28,36 @@ function createComposeModal(onSubmit) {
   `;
 
   card.innerHTML = `
-    <h2 style="margin-bottom: 10px;">🧠 Compose with AI</h2>
-    <textarea id="aiPrompt" rows="4" placeholder="What do you want to say?" style="width: 100%; padding: 8px; margin-bottom: 12px;"></textarea>
-    <label for="tone">Tone:</label>
-    <select id="aiTone" style="width: 100%; padding: 6px; margin-bottom: 12px;">
-      <option value="formal">Formal</option>
-      <option value="friendly">Friendly</option>
-      <option value="concise">Concise</option>
-      <option value="technical">Technical</option>
-    </select>
-    <div style="display: flex; justify-content: flex-end; gap: 8px;">
-      <button id="cancelBtn">Cancel</button>
-      <button id="generateBtn" style="background:#4f46e5; color:white; border:none; padding:6px 12px; border-radius:6px;">Generate</button>
-    </div>
-  `;
+  <h2 style="margin-bottom: 10px;">🧠 Compose with AI</h2>
+  <textarea id="aiPrompt" rows="4" placeholder="What do you want to say?" style="width: 100%; padding: 8px; margin-bottom: 12px;"></textarea>
+
+  <label for="tone">Tone:</label>
+  <select id="aiTone" style="width: 100%; padding: 6px; margin-bottom: 12px;">
+    <option value="formal">Formal</option>
+    <option value="friendly">Friendly</option>
+    <option value="concise">Concise</option>
+    <option value="technical">Technical</option>
+  </select>
+
+  <label for="contextType">Context:</label>
+  <select id="contextType" style="width: 100%; padding: 6px; margin-bottom: 12px;">
+    <option value="business">Business</option>
+    <option value="customer support">Customer Support</option>
+    <option value="technical">Technical</option>
+    <option value="internal">HR / Internal</option>
+    <option value="informal">Informal</option>
+  </select>
+
+  <label style="display:block; margin: 6px 0;">
+    <input type="checkbox" id="myStyleCheckbox"/> Enable "My Style" Mode
+  </label>
+
+  <div style="display: flex; justify-content: flex-end; gap: 8px;">
+    <button id="cancelBtn">Cancel</button>
+    <button id="generateBtn" style="background:#4f46e5; color:white; border:none; padding:6px 12px; border-radius:6px;">Generate</button>
+  </div>
+`;
+
 
   modal.appendChild(card);
   document.body.appendChild(modal);
@@ -50,9 +66,20 @@ function createComposeModal(onSubmit) {
   document.getElementById("generateBtn").onclick = () => {
     const prompt = document.getElementById("aiPrompt").value.trim();
     const tone = document.getElementById("aiTone").value;
+    const contextType = document.getElementById("contextType").value;
+    const myStyleMode = document.getElementById("myStyleCheckbox").checked;
+
+    // Save settings to local storage
+    chrome.storage.local.set({
+      defaultTone: tone,
+      contextType,
+      myStyleMode
+    });
+
     if (prompt) {
       modal.remove();
       onSubmit({ prompt, tone });
     }
   };
+
 }
