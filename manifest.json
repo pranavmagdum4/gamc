@@ -1,26 +1,26 @@
 {
-    "manifest_version": 3,
-    "name": "Atom Mind – AI Email Assistant",
-    "version": "1.0",
-    "description": "Smart email composition and reply assistant for Atom Mail using Gemini AI",
-    "permissions": ["scripting", "activeTab", "contextMenus"],
-    "host_permissions": ["<all_urls>"],
-    "action": {
-      "default_title": "Atom Mind AI"
-    },
-    "background": {
-      "service_worker": "background.js"
-    },
-    "content_scripts": [
-      {
-        "matches": ["https://*/*"],
-        "js": ["content.js"],
-        "run_at": "document_idle",
-        "all_frames": true
-      }
-    ],
-    "icons": {
-      "128": "icons/icon128.jpg"
+  "manifest_version": 3,
+  "name": "Atom Mind – AI Email Assistant",
+  "version": "1.0",
+  "description": "Smart email composition and reply assistant for Atom Mail using Gemini AI",
+  "permissions": ["scripting", "activeTab", "contextMenus", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Atom Mind AI"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*"],
+      "js": ["config.js", "modal.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
+  ],
+  "icons": {
+    "128": "icons/icon128.jpg"
   }
-  
+}
