@@ -121,24 +121,5 @@ git clone https://github.com/your-repo/atom-mind-extension.git
 
 ---
 
-## 📜 License
 
-- MIT License. See `LICENSE` file for details.
-
----
-
-## 👥 Contributing
-
-- Contributions are welcome!
-- Open a pull request or create issues for bug reports and suggestions.
-
----
-
-## 👤 Authors & Acknowledgments
-
-- Developed by Team GoFloww Atom Mail Hackathon Participants.
-
----
-
-🌟 **Happy Emailing with Atom Mind!** 🌟
 
