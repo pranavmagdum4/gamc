@@ -51,16 +51,20 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   const instruction = instructionMap[info.menuItemId];
   if (instruction && info.selectionText) {
-    chrome.tabs.sendMessage(tab.id, {
-      action: "REFINE_TEXT",
-      text: info.selectionText,
-      instruction: instruction
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.warn("⚠️ Could not connect to content script:", chrome.runtime.lastError.message);
-      } else {
-        console.log("✅ Message sent to content script");
+    chrome.tabs.sendMessage(
+      tab.id,
+      {
+        action: "REFINE_TEXT",
+        text: info.selectionText,
+        instruction: instruction
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn("⚠️ Could not connect to content script:", chrome.runtime.lastError.message);
+        } else {
+          console.log("✅ Message sent to content script");
+        }
       }
-    });
+    );
   }
 });

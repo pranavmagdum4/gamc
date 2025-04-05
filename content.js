@@ -15,31 +15,34 @@ function injectAIComposeButton(composeBox) {
   btn.style.cursor = 'pointer';
   btn.style.zIndex = '9999';
 
-  btn.addEventListener('click', () => {
-    createComposeModal(async ({ prompt, tone }) => {
-      console.log("🧠 Sending to Gemini:", prompt, "Tone:", tone);
-      const aiDraft = await generateWithGemini(prompt, tone);
-      console.log("📩 AI Draft Received:", aiDraft);
+    // btn.addEventListener('click', () => {
+    //   alert("🧠 AI Compose clicked!");
+    // });
+    btn.addEventListener('click', () => {
+        createComposeModal(async ({ prompt, tone }) => {
+            console.log("🧠 Sending to Gemini:", prompt, "Tone:", tone);
 
-      const newComposeBox = document.querySelector('div[aria-label="Message Body"][role="textbox"]');
-      if (newComposeBox) {
-        newComposeBox.innerText = aiDraft;
-        saveUserMessageToStorage(aiDraft); // ✅ This saves the AI draft for "My Style"
-      } else {
-        console.warn("⚠ Could not find compose box to insert AI draft.");
-      }
+            // Call Gemini API
+            const aiDraft = await generateWithGemini(prompt, tone);
+            console.log("📩 AI Draft Received:", aiDraft);
+
+            // Insert into Gmail compose box
+            const composeBox = document.querySelector('div[aria-label="Message Body"][role="textbox"]');
+            if (composeBox) {
+                composeBox.innerText = aiDraft;
+                console.log("✅ Draft inserted into Gmail");
+            } else {
+                console.warn("⚠️ Could not find compose box to insert AI draft.");
+            }
+        });
     });
-  });
 
-  // try {
-  //   parent.appendChild(btn); // ✅ stable alternative
-  //   console.log("✅ AI Compose button injected (appended)");
-  // } catch (err) {
-  //   console.error("❌ Failed to inject AI Compose button:", err);
-  // }
+
+    // Insert the button before the compose box
+    composeBox.parentNode.insertBefore(btn, composeBox);
+    console.log("✅ AI Compose button injected");
 }
 
-// Observer for detecting the compose box
 function observeForComposeBox() {
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
@@ -61,149 +64,61 @@ function observeForComposeBox() {
   console.log("👀 MutationObserver set up to watch for compose box...");
 }
 
-function observeForReplyBox() {
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      const replyBox = document.querySelector('div[aria-label="Message Body"][role="textbox"]');
-      if (replyBox && !document.getElementById('atom-ai-reply-btn')) {
-        console.log("💬 Reply box detected by observer");
-        injectAIReplyButton(replyBox);
-        break;
-      }
-    }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-
-  console.log("👀 MutationObserver set up for reply box...");
-}
-
-// Function to call Gemini API for AI draft generation
-async function generateWithGemini(userPrompt, fallbackTone = "friendly") {
-  const apiKey = window.CONFIG.GEMINI_API_KEY;
-
-  const { defaultTone, contextType, myStyleMode, pastMessages } = await new Promise((resolve) => {
-    chrome.storage.local.get(["defaultTone", "contextType", "myStyleMode", "pastMessages"], resolve);
-  });
-
-  const tone = defaultTone || fallbackTone;
-  const context = contextType || "general";
-
-  let fullPrompt = `Write a ${tone} email for a ${context} context. The message is:\n\n${userPrompt}`;
-
-  if (myStyleMode && pastMessages && pastMessages.length > 0) {
-    const recentMsgs = pastMessages.slice(-3).join("\n\n");
-    fullPrompt = `You are an assistant that writes emails in the same style as the user. The user's past messages were:\n${recentMsgs}\n\nNow, write an email in the same tone and context:\n${userPrompt}`;
-  }
-
-  const body = {
-    contents: [{ parts: [{ text: fullPrompt }] }],
-  };
-
-  try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }
-    );
-
-    const result = await response.json();
-    console.log("🌟 Gemini API Result:", result);
-
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ Gemini failed to respond.";
-  } catch (err) {
-    console.error("Gemini error:", err);
-    return "⚠️ Gemini failed to respond (network or key error).";
-  }
-}
-
-
-function injectAIReplyButton(replyBox) {
-  // Avoid duplicate
-  if (document.getElementById('atom-ai-reply-btn')) return;
-
-  // Create Reply with AI button
-  const btn = document.createElement('button');
-  btn.id = 'atom-ai-reply-btn';
-  btn.innerText = '💬 Reply with AI';
-  btn.style.margin = '10px 0';
-  btn.style.padding = '6px 12px';
-  btn.style.backgroundColor = '#10b981';
-  btn.style.color = 'white';
-  btn.style.border = 'none';
-  btn.style.borderRadius = '6px';
-  btn.style.cursor = 'pointer';
-  btn.style.zIndex = '9999';
-
-  btn.addEventListener('click', () => {
-    createComposeModal(async ({ prompt, tone }) => {
-      console.log("📨 Generating AI reply...");
-
-      const threadText = getVisibleThreadText(); // Next step
-      // const fullPrompt = 'Reply to the following conversation in a ${tone} tone:\n\n${threadText}\n\nInclude this input if relevant: ${prompt}';
-      const fullPrompt = `Reply to the following conversation in a ${tone} tone:\n\n${threadText}\n\nInclude this input if relevant: ${prompt}`;
-
-
-      const aiDraft = await generateWithGemini(fullPrompt, tone);
-      replyBox.innerText = aiDraft;
-      console.log("✅ AI reply inserted");
-    });
-  });
-
-  // ⛓ Inject button into stable container above replyBox
-  const stableContainer = replyBox.closest('div[role="textbox"]').parentElement?.parentElement;
-
-  if (stableContainer) {
-    stableContainer.insertBefore(btn, stableContainer.firstChild);
-    console.log("✅ AI Reply button safely injected");
-  } else {
-    console.warn("⚠ Could not find stable container for AI reply button.");
-  }
-}
-
-function saveUserMessageToStorage(msgText) {
-  chrome.storage.local.get(["pastMessages"], (data) => {
-    const updated = [...(data.pastMessages || []), msgText].slice(-10); // keep only last 10
-    chrome.storage.local.set({ pastMessages: updated });
-  });
-}
-
-
-function getVisibleThreadText() {
-  const messages = document.querySelectorAll('div.adn');
-
-  let threadText = "";
-
-  messages.forEach((msg) => {
+async function generateWithGemini(prompt, tone) {
+    const apiKey = "AIzaSyC-e3RXDhoKx-3-TRkdYE7ELnxfwf00zUs";
+    const fullPrompt = `Write a ${tone} email about: ${prompt}`;
+  
+    const body = {
+      contents: [
+        {
+          parts: [{ text: fullPrompt }],
+        },
+      ],
+    };
+  
     try {
-      const senderElement = msg.querySelector('.gD'); // sender name
-      const bodyElement = msg.querySelector('.a3s');  // message body
-
-      const sender = senderElement ? senderElement.innerText.trim() : "Unknown Sender";
-      const body = bodyElement ? bodyElement.innerText.trim() : "";
-
-      if (body.length > 0) {
-        threadText += `From: ${sender}\n${body}\n\n------------------\n\n`;
-      }
+      const response = await fetch(
+        // "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey,
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+ apiKey,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+  
+      const result = await response.json();
+      console.log("Gemini API result:", result);
+  
+      return result.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ Gemini failed to respond.";
     } catch (err) {
-      console.warn("⚠ Failed to parse one message:", err);
+      console.error("Gemini error:", err);
+      return "⚠️ Gemini failed to respond (network or key error).";
     }
-  });
-
-  return threadText || "No previous messages found.";
-}
+  }
+  
 
 
-// Function to call Gemini API for text refinement based on an instruction
+// Run observer on page load
+observeForComposeBox();
+
+console.log("✅ Content script loaded");
+
+chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+  if (msg.action === "REFINE_TEXT" && msg.text && msg.instruction) {
+    console.log("📩 Refining:", msg.text, "| Instruction:", msg.instruction);
+
+    const refined = await generateWithGeminiPrompt(msg.text, msg.instruction);
+    replaceSelectedText(refined);
+  }
+});
+
 async function generateWithGeminiPrompt(input, instruction) {
-  const apiKey = window.CONFIG.GEMINI_API_KEY;
-  const fullPrompt = `You are a helpful writing assistant. Rewrite the following text with the instruction: "${instruction}". 
+  const apiKey = "AIzaSyC-e3RXDhoKx-3-TRkdYE7ELnxfwf00zUs";
+  const fullPrompt = `
+You are a helpful writing assistant. Rewrite the following text with the instruction: "${instruction}". 
 Only return the improved version. Do not add explanations or multiple options.
 
 Text: "${input}"
