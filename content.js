@@ -16,24 +16,30 @@ function injectAIComposeButton(composeBox) {
   btn.style.zIndex = '9999';
 
   btn.addEventListener('click', () => {
-      createComposeModal(async ({ prompt, tone }) => {
-          console.log("🧠 Sending to Gemini:", prompt, "Tone:", tone);
-          const aiDraft = await generateWithGemini(prompt, tone);
-          console.log("📩 AI Draft Received:", aiDraft);
+    createComposeModal(async ({ prompt, tone }) => {
+      console.log("🧠 Sending to Gemini:", prompt, "Tone:", tone);
+      const aiDraft = await generateWithGemini(prompt, tone);
+      console.log("📩 AI Draft Received:", aiDraft);
 
-          const newComposeBox = document.querySelector('div[aria-label="Message Body"][role="textbox"]');
-          if (newComposeBox) {
-              newComposeBox.innerText = aiDraft;
-          } else {
-              console.warn("⚠ Could not find compose box to insert AI draft.");
-          }
-      });
+      const newComposeBox = document.querySelector('div[aria-label="Message Body"][role="textbox"]');
+      if (newComposeBox) {
+        newComposeBox.innerText = aiDraft;
+        saveUserMessageToStorage(aiDraft); // ✅ This saves the AI draft for "My Style"
+      } else {
+        console.warn("⚠ Could not find compose box to insert AI draft.");
+      }
+    });
   });
 
-  parent.insertBefore(btn, composeBox);
-  console.log("✅ AI Compose button injected");
+  // try {
+  //   parent.appendChild(btn); // ✅ stable alternative
+  //   console.log("✅ AI Compose button injected (appended)");
+  // } catch (err) {
+  //   console.error("❌ Failed to inject AI Compose button:", err);
+  // }
 }
 
+// Observer for detecting the compose box
 function observeForComposeBox() {
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
@@ -76,16 +82,25 @@ function observeForReplyBox() {
 }
 
 // Function to call Gemini API for AI draft generation
-async function generateWithGemini(prompt, tone) {
+async function generateWithGemini(userPrompt, fallbackTone = "friendly") {
   const apiKey = window.CONFIG.GEMINI_API_KEY;
-  const fullPrompt = `Write a ${tone} email about: ${prompt}`;
+
+  const { defaultTone, contextType, myStyleMode, pastMessages } = await new Promise((resolve) => {
+    chrome.storage.local.get(["defaultTone", "contextType", "myStyleMode", "pastMessages"], resolve);
+  });
+
+  const tone = defaultTone || fallbackTone;
+  const context = contextType || "general";
+
+  let fullPrompt = 'Write a ${tone} email for a ${context} context. The message is:\n\n${userPrompt}';
+
+  if (myStyleMode && pastMessages && pastMessages.length > 0) {
+    const recentMsgs = pastMessages.slice(-3).join("\n\n");
+    fullPrompt = `You are an assistant that writes emails in the same style as the user. The user's past messages were:\n${recentMsgs}\n\nNow, write an email in the same tone and context:\n${userPrompt}`;
+  }
 
   const body = {
-    contents: [
-      {
-        parts: [{ text: fullPrompt }],
-      },
-    ],
+    contents: [{ parts: [{ text: fullPrompt }] }],
   };
 
   try {
@@ -93,22 +108,21 @@ async function generateWithGemini(prompt, tone) {
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }
     );
 
     const result = await response.json();
-    console.log("Gemini API result:", result);
+    console.log("🌟 Gemini API Result:", result);
 
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ Gemini failed to respond.";
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || "⚠ Gemini failed to respond.";
   } catch (err) {
     console.error("Gemini error:", err);
-    return "⚠️ Gemini failed to respond (network or key error).";
+    return "⚠ Gemini failed to respond (network or key error).";
   }
 }
+
 
 function injectAIReplyButton(replyBox) {
   // Avoid duplicate
@@ -132,7 +146,9 @@ function injectAIReplyButton(replyBox) {
       console.log("📨 Generating AI reply...");
 
       const threadText = getVisibleThreadText(); // Next step
-      const fullPrompt = 'Reply to the following conversation in a ${tone} tone:\n\n${threadText}\n\nInclude this input if relevant: ${prompt}';
+      // const fullPrompt = 'Reply to the following conversation in a ${tone} tone:\n\n${threadText}\n\nInclude this input if relevant: ${prompt}';
+      const fullPrompt = `Reply to the following conversation in a ${tone} tone:\n\n${threadText}\n\nInclude this input if relevant: ${prompt}`;
+
 
       const aiDraft = await generateWithGemini(fullPrompt, tone);
       replyBox.innerText = aiDraft;
@@ -151,6 +167,14 @@ function injectAIReplyButton(replyBox) {
   }
 }
 
+function saveUserMessageToStorage(msgText) {
+  chrome.storage.local.get(["pastMessages"], (data) => {
+    const updated = [...(data.pastMessages || []), msgText].slice(-10); // keep only last 10
+    chrome.storage.local.set({ pastMessages: updated });
+  });
+}
+
+
 function getVisibleThreadText() {
   const messages = document.querySelectorAll('div.adn');
 
@@ -165,7 +189,7 @@ function getVisibleThreadText() {
       const body = bodyElement ? bodyElement.innerText.trim() : "";
 
       if (body.length > 0) {
-        threadText += 'From: ${sender}\n${body}\n\n------------------\n\n';
+        threadText += `From: ${sender}\n${body}\n\n------------------\n\n`;
       }
     } catch (err) {
       console.warn("⚠ Failed to parse one message:", err);
@@ -179,8 +203,7 @@ function getVisibleThreadText() {
 // Function to call Gemini API for text refinement based on an instruction
 async function generateWithGeminiPrompt(input, instruction) {
   const apiKey = window.CONFIG.GEMINI_API_KEY;
-  const fullPrompt = `
-You are a helpful writing assistant. Rewrite the following text with the instruction: "${instruction}". 
+  const fullPrompt = `You are a helpful writing assistant. Rewrite the following text with the instruction: "${instruction}". 
 Only return the improved version. Do not add explanations or multiple options.
 
 Text: "${input}"
